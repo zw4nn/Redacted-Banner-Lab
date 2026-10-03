@@ -28,9 +28,9 @@ Elle peut notamment surveiller les actualités officielles Ingress et signaler l
 
 ## Version
 
-Version actuelle : **v1.1.3**
+Version actuelle : **v1.1.2**
 
-Les changements de cette version sont détaillés dans `release-notes-v1.1.3.md`.
+Les changements de cette version sont détaillés dans `release-notes-v1.1.2.md`.
 
 ## Installation
 
