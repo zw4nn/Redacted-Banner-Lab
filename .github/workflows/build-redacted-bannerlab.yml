@@ -399,4 +399,56 @@ jobs:
             fi
           fi
 
-          echo "Release publiée : ${TAG}"
+          echo "Release publiée / mise à jour : ${TAG}"
+
+      - name: Prévenir RITA que la Release est prête
+        if: ${{ inputs.publish_release == true }}
+        env:
+          RITA_RELEASE_WEBHOOK_URL: ${{ secrets.RITA_RELEASE_WEBHOOK_URL }}
+          RITA_RELEASE_WEBHOOK_SECRET: ${{ secrets.RITA_RELEASE_WEBHOOK_SECRET }}
+        run: |
+          test -n "$RITA_RELEASE_WEBHOOK_URL" || {
+            echo "ERREUR: secret RITA_RELEASE_WEBHOOK_URL absent."
+            exit 1
+          }
+
+          TAG="v${RBL_VERSION}"
+
+          PAYLOAD=$(jq -n \
+            --arg event "rbl_release_ready" \
+            --arg tag "$TAG" \
+            --arg version "$RBL_VERSION" \
+            --arg repository "${GITHUB_REPOSITORY}" \
+            --arg release_url "https://github.com/${GITHUB_REPOSITORY}/releases/tag/${TAG}" \
+            --arg commit "${GITHUB_SHA}" \
+            '{
+              event: $event,
+              tag: $tag,
+              version: $version,
+              repository: $repository,
+              release_url: $release_url,
+              commit: $commit
+            }')
+
+          CURL_ARGS=(
+            --fail-with-body
+            --silent
+            --show-error
+            --retry 3
+            --retry-all-errors
+            -X POST
+            -H "Content-Type: application/json"
+          )
+
+          if [ -n "$RITA_RELEASE_WEBHOOK_SECRET" ]; then
+            CURL_ARGS+=(
+              -H "X-RITA-Release-Secret: ${RITA_RELEASE_WEBHOOK_SECRET}"
+            )
+          fi
+
+          curl "${CURL_ARGS[@]}" \
+            --data "$PAYLOAD" \
+            "$RITA_RELEASE_WEBHOOK_URL"
+
+          echo
+          echo "RITA prévenue pour ${TAG}."
